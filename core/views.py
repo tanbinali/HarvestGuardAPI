@@ -1,13 +1,13 @@
 from datetime import date
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 import csv
-from .models import User, CropBatch, WeatherData, HealthScan, Achievement
-from .serializers import (UserSerializer, CropBatchSerializer, WeatherDataSerializer, HealthScanSerializer,AchievementSerializer)
-from rest_framework.parsers import MultiPartParser, FormParser
+from .models import User, CropBatch, Achievement, LossEvent, Intervention
+from .serializers import (UserSerializer, CropBatchSerializer,AchievementSerializer, LossEventSerializer, InterventionSerializer)
+from .achievements import award_badge
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -39,7 +39,11 @@ class CropBatchViewSet(viewsets.ModelViewSet):
 
     
     def perform_create(self, serializer):
-        serializer.save(farmer=self.request.user)
+        batch = serializer.save(farmer=self.request.user)
+        
+        # Award "First Harvest Logged" badge
+        if batch.farmer.crop_batches.count() == 1:
+            award_badge(batch.farmer, 'FIRST_HARVEST')
     
     @action(detail=False, methods=['GET'])
     def export_data(self, request):
@@ -88,32 +92,25 @@ class CropBatchViewSet(viewsets.ModelViewSet):
         batches = self.get_queryset().filter(status='COMPLETED')
         serializer = self.get_serializer(batches, many=True)
         return Response(serializer.data)
-
-
-class WeatherDataViewSet(viewsets.ReadOnlyModelViewSet):
-    """Weather data viewing"""
-    serializer_class = WeatherDataSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['GET'])
     
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return WeatherData.objects.none()
+    def dashboard(self, request):
+        """Aggregate stats for profile page"""
+        batches = self.get_queryset()
+        total_batches = batches.count()
+        total_loss_events = sum(b.loss_events.count() for b in batches)
+        total_interventions = sum(b.interventions.count() for b in batches)
+        successful_interventions = sum(b.interventions.filter(success=True).count() for b in batches)
+        success_rate = (successful_interventions / total_interventions * 100) if total_interventions else 0
 
-        batch_id = self.request.query_params.get('batch_id')
-        if batch_id:
-            return WeatherData.objects.filter(
-                batch__farmer=self.request.user,
-                batch__id=batch_id
-            )
-        return WeatherData.objects.filter(batch__farmer=self.request.user)
-
-    @action(detail=False, methods=['POST'])
-    def upload(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = {
+            "total_batches": total_batches,
+            "total_loss_events": total_loss_events,
+            "total_interventions": total_interventions,
+            "successful_interventions": successful_interventions,
+            "intervention_success_rate": round(success_rate, 2)
+        }
+        return Response(data)
 
 class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
     """Achievement/badge management"""
@@ -126,3 +123,29 @@ class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Achievement.objects.filter(user=self.request.user)
 
+class LossEventViewSet(viewsets.ModelViewSet):
+    """CRUD for loss events per crop batch"""
+    serializer_class = LossEventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return LossEvent.objects.filter(batch__farmer=self.request.user)
+
+    def perform_create(self, serializer):
+        # Ensure the batch belongs to the current user
+        serializer.save()
+
+class InterventionViewSet(viewsets.ModelViewSet):
+    """CRUD for interventions per crop batch"""
+    serializer_class = InterventionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Intervention.objects.filter(batch__farmer=self.request.user)
+
+    def perform_create(self, serializer):
+        intervention = serializer.save()
+        
+        # Award "Risk Mitigated Expert" badge if intervention was successful
+        if intervention.success:
+            award_badge(intervention.batch.farmer, 'RISK_MITIGATOR')

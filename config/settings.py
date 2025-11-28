@@ -13,7 +13,6 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-HUGGINGFACE_API_KEY = config('HUGGINGFACE_API_KEY', default='')
 
 # ------------------------
 # Installed apps
@@ -35,8 +34,6 @@ INSTALLED_APPS = [
     'cloudinary_storage',
 
     'core',
-    'ml_service',
-    'weather_service',
 ]
 
 # ------------------------
@@ -93,25 +90,6 @@ DATABASES = {
         'PORT': config('DB_PORT', default='5432'),
     }
 }
-
-# ------------------------
-# Cloudinary
-# ------------------------
-cloudinary.config(
-    cloud_name=config("CLOUD_NAME"),
-    api_key=config("CLOUD_API_KEY"),
-    api_secret=config("CLOUD_API_SECRET"),
-    secure=True
-)
-
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": config("CLOUD_NAME"),
-    "API_KEY": config("CLOUD_API_KEY"),
-    "API_SECRET": config("CLOUD_API_SECRET"),
-    "MEDIA_FOLDER": "harvest_guard",
-}
-
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # ------------------------
 # Password validation

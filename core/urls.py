@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (UserViewSet, CropBatchViewSet, WeatherDataViewSet, AchievementViewSet)
-from ml_service.views import HealthScanViewSet
+from .views import (InterventionViewSet, LossEventViewSet, UserViewSet, CropBatchViewSet, AchievementViewSet)
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
@@ -9,9 +8,10 @@ from rest_framework import permissions
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'crops/batches', CropBatchViewSet, basename='crop-batch')
-router.register(r'weather', WeatherDataViewSet, basename='weather')
-router.register(r'health-scans', HealthScanViewSet, basename='health-scan')
 router.register(r'achievements', AchievementViewSet, basename='achievement')
+router.register(r'loss-events', LossEventViewSet, basename='loss-event')
+router.register(r'interventions', InterventionViewSet, basename='intervention')
+
 
 # Schema view configuration for Swagger and Redoc API documentation
 schema_view = get_schema_view(
