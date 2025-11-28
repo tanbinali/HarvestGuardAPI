@@ -1,13 +1,8 @@
-import os
 from pathlib import Path
 from decouple import config
-import environ
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -29,9 +24,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'djoser',
     'corsheaders',
-    'cloudinary',
-    'cloudinary_storage',
-
     'core',
 ]
 
