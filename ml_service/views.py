@@ -8,6 +8,7 @@ from core.models import HealthScan, CropBatch
 from core.serializers import HealthScanSerializer
 from ml_service.services import CropHealthService
 
+
 class HealthScanViewSet(viewsets.ModelViewSet):
     """
     Unified HealthScan ViewSet:
@@ -19,6 +20,10 @@ class HealthScanViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
+        # Avoid issues with Swagger / AnonymousUser
+        if getattr(self, 'swagger_fake_view', False):
+            return HealthScan.objects.none()
+
         # Only scans for the current user's batches
         return HealthScan.objects.filter(batch__farmer=self.request.user)
 
@@ -33,7 +38,11 @@ class HealthScanViewSet(viewsets.ModelViewSet):
         # Use .child.fields if serializer is a ListSerializer
         fields = getattr(serializer, 'child', serializer).fields
         if 'batch' in fields and hasattr(fields['batch'], 'queryset'):
-            fields['batch'].queryset = CropBatch.objects.filter(farmer=self.request.user)
+            # Avoid issues with AnonymousUser / Swagger
+            if getattr(self, 'swagger_fake_view', False):
+                fields['batch'].queryset = CropBatch.objects.none()
+            else:
+                fields['batch'].queryset = CropBatch.objects.filter(farmer=self.request.user)
 
         return serializer
 
