@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import cloudinary
 from decouple import config
 import environ
 from datetime import timedelta
@@ -12,7 +11,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ALLOWED_HOSTS = [".vercel.app", "127.0.0.1"]
 
 # ------------------------
 # Installed apps
