@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import User, CropBatch, Achievement, LossEvent, Intervention
+from .models import CropBatch, Achievement, LossEvent, Intervention
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     """User serializer for registration and profile"""
@@ -8,11 +11,20 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'phone_number', 'first_name', 'last_name', 
-                  'preferred_language', 'password', 'created_at']
+                  'preferred_language', 'password', 'created_at','username']
         read_only_fields = ['id', 'created_at']
     
     def create(self, validated_data):
         password = validated_data.pop('password', None)
+        if 'username' not in validated_data or not validated_data['username']:
+            email = validated_data.get('email')
+            base_username = email.split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            validated_data['username'] = username
         instance = self.Meta.model(**validated_data)
         if password:
             instance.set_password(password)

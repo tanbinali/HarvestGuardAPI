@@ -10,6 +10,9 @@ class User(AbstractUser):
         ('BN', 'Bangla'),
     ]
     
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, unique=True)
